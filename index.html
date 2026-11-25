@@ -2,43 +2,145 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Дерево клиентов — Вектор-Строй</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>База клиентов — дерево</title>
 <style>
-  body { background: #0f172a; color: #f8fafc; font-family: sans-serif; padding: 20px; max-width: 1050px; margin: 0 auto; }
-  .top { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
-  input, button { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
-  button.primary { background: #38bdf8; color: #0f172a; font-weight: bold; border: none; }
-  .node { margin-bottom: 8px; }
-  .head { background: #1e293b; border: 1px solid #334155; padding: 12px 14px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-  .head:hover { border-color: #38bdf8; }
-  .kids { margin-left: 20px; padding-left: 14px; border-left: 2px dashed #334155; margin-top: 6px; display: none; }
-  .kids.open { display: block; }
-  .card { background: #162032; border: 1px solid #334155; border-radius: 8px; padding: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
-  .item { background: #1e293b; padding: 10px 12px; border-radius: 6px; font-size: 14px; line-height: 1.45; }
-  .item b { display: block; color: #38bdf8; font-size: 12px; margin-bottom: 4px; text-transform: uppercase; }
-  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
-  .modal.show { display: flex; }
-  .box { background: #1e293b; padding: 20px; border-radius: 10px; width: 90%; max-width: 650px; }
-  textarea { width: 100%; height: 240px; background: #0f172a; color: #a5f3fc; border: 1px solid #334155; margin: 10px 0; padding: 8px; }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#1f2937;background:#f8fafc;display:flex;flex-direction:column;overflow:hidden}
+
+/* Панель инструментов */
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,.06);z-index:5}
+.toolbar h1{font-size:16px;margin:0 8px 0 0;white-space:nowrap}
+.toolbar .stat{font-size:12px;color:#64748b;white-space:nowrap}
+.spacer{flex:1 1 auto}
+.field{position:relative;display:flex;align-items:center}
+.field input{width:250px;max-width:42vw;padding:8px 12px 8px 30px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#f8fafc;color:#0f172a;outline:none}
+.field input:focus{border-color:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.18)}
+.field .ico{position:absolute;left:9px;font-size:13px;opacity:.55;pointer-events:none}
+button{font-family:inherit;font-size:13px;padding:8px 12px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;border-radius:8px;cursor:pointer;transition:.15s;white-space:nowrap}
+button:hover{border-color:#94a3b8;background:#f1f5f9}
+button.primary{background:#38bdf8;border-color:#0ea5e9;color:#04263a;font-weight:600}
+button.primary:hover{background:#22a9e0}
+button.active{background:#dcfce7;border-color:#22c55e;color:#14532d;font-weight:600}
+.zoom{display:flex;align-items:center;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}
+.zoom button{border:none;border-radius:0;padding:8px 10px}
+.zoom .pc{min-width:54px;text-align:center;font-size:12px;color:#475569;background:#f8fafc;padding:8px 4px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;cursor:pointer}
+
+/* Рабочая область — холст со светлой сеткой */
+.viewport{position:relative;flex:1 1 auto;overflow:auto;background-color:#f8fafc;background-image:linear-gradient(#e9eef5 1px,transparent 1px),linear-gradient(90deg,#e9eef5 1px,transparent 1px);background-size:26px 26px;background-position:-1px -1px}
+.zoomwrap{position:relative}
+.canvas{position:absolute;top:0;left:0;transform-origin:top left}
+.edges{position:absolute;top:0;left:0;overflow:visible;z-index:0}
+.edges path{fill:none;stroke:#475569;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.nodes{position:absolute;top:0;left:0;z-index:1}
+
+/* Карточки-узлы */
+.card{position:absolute;border-radius:12px;border:2px solid #cbd5e1;background:#fff;box-shadow:0 2px 6px rgba(15,23,42,.10);padding:10px 12px;display:flex;flex-direction:column;justify-content:center;gap:3px;overflow:hidden;user-select:none;transition:box-shadow .15s,transform .15s}
+.card .ttl{font-size:14px;font-weight:700;line-height:1.2;overflow-wrap:anywhere}
+.card .sub{font-size:11.5px;line-height:1.25;color:#475569;overflow-wrap:anywhere}
+.card .fc{color:#9d174d;font-weight:600;white-space:nowrap}
+.card .caret{position:absolute;top:4px;right:7px;font-size:11px;opacity:.7}
+.card .badge{position:absolute;bottom:5px;right:8px;font-size:10.5px;background:rgba(15,23,42,.08);color:#334155;padding:1px 7px;border-radius:999px}
+.t-root{background:#fef9c3;border-color:#f59e0b}
+.t-root .ttl{font-size:15px}
+.t-role{background:#dcfce7;border-color:#22c55e}
+.t-company{background:#dbeafe;border-color:#3b82f6}
+.t-person{background:#fce7f3;border-color:#ec4899}
+.t-factor{background:#ede9fe;border-color:#8b5cf6;border-width:1.5px}
+.t-factor .ttl{font-size:12.5px;font-weight:600}
+.card[data-act]{cursor:pointer}
+.card[data-act]:hover{box-shadow:0 6px 16px rgba(15,23,42,.20);transform:translateY(-2px)}
+.t-person:hover{border-color:#db2777}
+.t-factor:hover{border-color:#7c3aed}
+.card.collapsed{filter:saturate(.8)}
+.card.hit{box-shadow:0 0 0 3px rgba(56,189,248,.6),0 4px 12px rgba(15,23,42,.15)}
+mark{background:#fde68a;color:inherit;border-radius:3px;padding:0 1px}
+/* Панель подробностей клиента */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:40}
+.overlay[hidden]{display:none}
+.drawer{position:fixed;top:0;right:0;height:100%;width:400px;max-width:92vw;background:#fff;box-shadow:-8px 0 30px rgba(15,23,42,.22);z-index:50;transform:translateX(105%);transition:transform .28s ease;display:flex;flex-direction:column}
+.drawer.show{transform:translateX(0)}
+.drawer .dhead{padding:16px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc}
+.drawer .dhead .nm{font-size:16px;font-weight:700;padding-right:36px}
+.drawer .dhead .ps{font-size:12.5px;color:#475569;margin-top:3px}
+.drawer .chips{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid transparent;font-weight:600}
+.chip.role{background:#dcfce7;border-color:#22c55e;color:#14532d}
+.chip.company{background:#dbeafe;border-color:#3b82f6;color:#1e3a8a}
+.drawer .dbody{padding:14px 18px;overflow:auto;flex:1}
+.fitem{border:1px solid #e2e8f0;border-left:4px solid #8b5cf6;border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#fcfbff}
+.fitem .fn{font-size:12.5px;font-weight:700;color:#5b21b6;margin-bottom:5px}
+.fitem .ft{font-size:13px;line-height:1.5;color:#334155}
+.fitem.flash{background:#fef9c3;border-left-color:#f59e0b}
+.dclose{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:15px;line-height:1;cursor:pointer}
+
+/* Модальное окно JSON */
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+.modal.show{display:flex}
+.mbox{background:#fff;border-radius:14px;padding:18px;width:100%;max-width:760px;box-shadow:0 20px 50px rgba(15,23,42,.35);display:flex;flex-direction:column;max-height:90vh}
+.mbox b{font-size:15px}
+.mbox .hint{font-size:12px;color:#64748b;margin:6px 0 0}
+.mbox textarea{width:100%;flex:1;min-height:320px;margin:12px 0;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#0f172a;color:#a5f3fc;font-family:Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.45;resize:vertical}
+.mbox .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:15px;pointer-events:none;text-align:center;padding:20px}
+.empty[hidden]{display:none}
 </style>
 </head>
 <body>
-<div class="top">
-  <h2 style="margin:0; margin-right:auto;">🌳 Дерево клиентов</h2>
-  <input id="q" placeholder="Поиск по ФИО, роли, фактам..." oninput="render(this.value)">
-  <button onclick="allOpen(true)">Развернуть всё</button>
-  <button onclick="allOpen(false)">Свернуть всё</button>
-  <button class="primary" onclick="openM()">+ Загрузить JSON</button>
+<header class="toolbar">
+  <h1>🌳 База клиентов</h1>
+  <span class="stat" id="stats"></span>
+  <div class="spacer"></div>
+  <div class="field">
+    <span class="ico">🔍</span>
+    <input id="q" type="search" placeholder="Поиск по клиентам, компаниям, факторам…" autocomplete="off">
+  </div>
+  <button id="expandAll" title="Показать все уровни">⤢ Развернуть всё</button>
+  <button id="collapseAll" title="Свернуть до ролей">⤡ Свернуть всё</button>
+  <button id="fbtn" title="Показать/скрыть факторы как отдельные узлы дерева">🧩 Факторы: выкл</button>
+  <div class="zoom">
+    <button id="zout" title="Уменьшить">−</button>
+    <button id="zoomPc" class="pc" title="Сбросить масштаб">100%</button>
+    <button id="zin" title="Увеличить">+</button>
+  </div>
+  <button class="primary" id="jsonBtn" title="Загрузить / скачать данные JSON">🗂 JSON</button>
+</header>
+
+<main class="viewport" id="viewport">
+  <div class="zoomwrap" id="zoomwrap">
+    <div class="canvas" id="canvas">
+      <svg class="edges" id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="nodes" id="nodes"></div>
+    </div>
+  </div>
+  <div class="empty" id="empty" hidden></div>
+</main>
+
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+<div class="overlay" id="overlay" hidden></div>
+<div class="modal" id="m">
+  <div class="mbox">
+    <b>🗂 Данные клиентов (JSON)</b>
+    <p class="hint">Можно редактировать, добавлять или удалять записи прямо здесь и нажать «Сохранить». Данные хранятся в браузере (localStorage) и не пропадут при перезагрузке.</p>
+    <textarea id="jin" spellcheck="false"></textarea>
+    <div class="row">
+      <button type="button" id="dlBtn">⬇ Скачать JSON</button>
+      <button type="button" id="resetBtn">↺ Пример</button>
+      <span class="spacer"></span>
+      <button type="button" id="cancelBtn">Отмена</button>
+      <button type="button" class="primary" id="saveBtn">Сохранить и построить</button>
+    </div>
+  </div>
 </div>
-<div id="root"></div>
-<div class="modal" id="m"><div class="box"><b>Вставь JSON:</b><textarea id="jin"></textarea><button onclick="document.getElementById('m').classList.remove('show')">Отмена</button> <button class="primary" onclick="save()">Сохранить</button></div></div>
+
 <script>
 const def = [
   {
-    "company": "Вектор-Строй (девелопмент и строительство)",
-    "roles": [
+    "role": "ЛПР — Безопасники/ИТ",
+    "companies": [
       {
-        "role": "ЛПР — Безопасники/ИТ",
+        "company": "Ромашка (крупный ритейл)",
         "people": [
           {
             "fio": "Валерий Викторович Строганов",
@@ -56,9 +158,14 @@ const def = [
             ]
           }
         ]
-      },
+      }
+    ]
+  },
+  {
+    "role": "ЛДПР — Закупки материалов",
+    "companies": [
       {
-        "role": "ЛДПР — Закупки материалов",
+        "company": "Вектор-Строй (девелопмент и строительство)",
         "people": [
           {
             "fio": "Елена Сергеевна Ковалёва",
@@ -76,9 +183,14 @@ const def = [
             ]
           }
         ]
-      },
+      }
+    ]
+  },
+  {
+    "role": "ЛВР — Юристы",
+    "companies": [
       {
-        "role": "ЛВР — Юристы",
+        "company": "Вектор-Строй (девелопмент и строительство)",
         "people": [
           {
             "fio": "Артём Олегович Светлов",
@@ -100,40 +212,348 @@ const def = [
     ]
   }
 ];
-let data = JSON.parse(localStorage.getItem('treeDataV3')) || def;
-function render(f = '') {
-  const r = document.getElementById('root'); r.innerHTML = '';
-  const q = f.toLowerCase().trim();
-  const grp = {};
-  data.forEach(cObj => {
-    const comp = cObj.company;
-    (cObj.roles || []).forEach(rObj => {
-      const role = rObj.role;
-      (rObj.people || []).forEach(p => {
-        if (q && !JSON.stringify({ comp, role, p }).toLowerCase().includes(q)) return;
-        grp[comp] = grp[comp] || {};
-        grp[comp][role] = grp[comp][role] || [];
-        grp[comp][role].push(p);
+/* ===== Состояние ===== */
+const LS_KEY = 'treeDataV2';
+let data;
+try {
+  const saved = localStorage.getItem(LS_KEY);
+  data = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(def));
+} catch (e) {
+  data = JSON.parse(JSON.stringify(def));
+}
+if (!Array.isArray(data)) data = JSON.parse(JSON.stringify(def));
+
+const collapsed = new Set();
+let showFactors = false;
+let zoom = 1;
+let canvasSize = { w: 380, h: 280 };
+let nodeIndex = new Map();
+
+const els = {
+  viewport: document.getElementById('viewport'),
+  zoomwrap: document.getElementById('zoomwrap'),
+  canvas:   document.getElementById('canvas'),
+  edges:    document.getElementById('edges'),
+  nodes:    document.getElementById('nodes'),
+  empty:    document.getElementById('empty'),
+  q:        document.getElementById('q'),
+  stats:    document.getElementById('stats'),
+  zoomPc:   document.getElementById('zoomPc'),
+  fbtn:     document.getElementById('fbtn'),
+  drawer:   document.getElementById('drawer'),
+  overlay:  document.getElementById('overlay')
+};
+
+/* Геометрия узлов и отступы */
+const GEO = {
+  root:    { w: 264, h: 78 },
+  role:    { w: 252, h: 74 },
+  company: { w: 264, h: 80 },
+  person:  { w: 272, h: 98 },
+  factor:  { w: 236, h: 56 }
+};
+const LEVELS = ['root', 'role', 'company', 'person', 'factor'];
+const H_GAP = 30, V_GAP = 64, PAD = 48;
+
+const EDGE_DEFS = '<defs><marker id="arw" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="13" markerHeight="13" markerUnits="userSpaceOnUse" orient="auto"><path d="M1,1 L11,6 L1,11 L4,6 Z" fill="#475569"></path></marker></defs>';
+
+/* ===== Вспомогательные ===== */
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+function hl(s, q) {
+  s = String(s == null ? '' : s);
+  if (!q) return esc(s);
+  let rx;
+  try { rx = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'); }
+  catch (e) { return esc(s); }
+  return s.split(rx).map((part, i) => (i % 2 === 1) ? '<mark>' + esc(part) + '</mark>' : esc(part)).join('');
+}
+
+/* ===== Построение дерева из данных ===== */
+function buildTree(query) {
+  const q = (query || '').toLowerCase().trim();
+  const root = { id: 'root', type: 'root', title: 'База клиентов', children: [] };
+  (Array.isArray(data) ? data : []).forEach((rObj, ri) => {
+    const roleName = (rObj && rObj.role) ? rObj.role : 'Без роли';
+    const roleHit = !!q && roleName.toLowerCase().includes(q);
+    const role = { id: 'r' + ri, type: 'role', title: roleName, hit: roleHit, children: [] };
+    ((rObj && rObj.companies) || []).forEach((cObj, ci) => {
+      const compName = (cObj && cObj.company) ? cObj.company : 'Без компании';
+      const compHit = !!q && compName.toLowerCase().includes(q);
+      const comp = { id: 'c' + ri + '_' + ci, type: 'company', title: compName, hit: compHit, children: [] };
+      ((cObj && cObj.people) || []).forEach((p, pi) => {
+        const blob = JSON.stringify(p || {}).toLowerCase();
+        const personHit = !!q && blob.includes(q);
+        if (q && !roleHit && !compHit && !personHit) return;
+        const person = {
+          id: 'p' + ri + '_' + ci + '_' + pi, type: 'person',
+          title: (p && p.fio) ? p.fio : 'Без имени',
+          subtitle: (p && p.position) ? p.position : '',
+          role: roleName, company: compName, person: p, hit: personHit, children: []
+        };
+        if (showFactors) {
+          person.children = ((p && p.factors) || []).map((f, fi) => ({
+            id: 'f' + ri + '_' + ci + '_' + pi + '_' + fi, type: 'factor',
+            title: (f && f.n ? f.n + '. ' : '') + ((f && f.name) || ''),
+            person: p, factor: f, children: []
+          }));
+        }
+        comp.children.push(person);
       });
+      if (q && !roleHit && !compHit && comp.children.length === 0) return;
+      role.children.push(comp);
+    });
+    if (q && !roleHit && role.children.length === 0) return;
+    root.children.push(role);
+  });
+  return root;
+}
+
+function countPeople(node) {
+  if (node.type === 'person') return 1;
+  return (node.children || []).reduce((s, c) => s + countPeople(c), 0);
+}
+function countCompanies(node) {
+  if (node.type === 'company') return 1;
+  return (node.children || []).reduce((s, c) => s + countCompanies(c), 0);
+}
+
+/* ===== Компоновка (tidy-tree, сверху вниз) ===== */
+function levelY(depth) {
+  let y = PAD;
+  for (let i = 0; i < depth; i++) y += GEO[LEVELS[i]].h + V_GAP;
+  return y;
+}
+function measure(node) {
+  const g = GEO[node.type];
+  const kids = node.children || [];
+  if (kids.length === 0) { node.subW = g.w; return; }
+  let total = 0;
+  kids.forEach((c, i) => { measure(c); total += c.subW + (i > 0 ? H_GAP : 0); });
+  node.subW = Math.max(g.w, total);
+}
+function assign(node, left, depth) {
+  const g = GEO[node.type];
+  const kids = node.children || [];
+  node.depth = depth; node.top = levelY(depth); node.w = g.w; node.h = g.h;
+  if (kids.length === 0) { node.x = left + node.subW / 2; return; }
+  let total = 0;
+  kids.forEach((c, i) => { total += c.subW + (i > 0 ? H_GAP : 0); });
+  let cursor = left + (node.subW - total) / 2;
+  kids.forEach(c => { assign(c, cursor, depth + 1); cursor += c.subW + H_GAP; });
+  node.x = (kids[0].x + kids[kids.length - 1].x) / 2;
+}
+function flatten(node, out) {
+  out.push(node);
+  (node.children || []).forEach(c => flatten(c, out));
+  return out;
+}
+function pruneCollapsed(node) {
+  if (collapsed.has(node.id)) { node.children = []; return; }
+  (node.children || []).forEach(pruneCollapsed);
+}
+/* ===== Отрисовка карточек и связей ===== */
+function cardHtml(n, q) {
+  const style = 'left:' + (n.x - n.w / 2) + 'px;top:' + n.top + 'px;width:' + n.w + 'px;height:' + n.h + 'px';
+  if (n.type === 'root') {
+    return '<div class="card t-root" style="' + style + '">' +
+      '<div class="ttl">' + hl(n.title, q) + '</div>' +
+      '<div class="sub">' + esc(n.subtitle) + '</div></div>';
+  }
+  if (n.type === 'role' || n.type === 'company') {
+    const coll = collapsed.has(n.id);
+    return '<div class="card t-' + n.type + (coll ? ' collapsed' : '') + '" data-id="' + n.id + '" data-act="toggle" style="' + style + '">' +
+      '<span class="caret">' + (coll ? '▶' : '▼') + '</span>' +
+      '<div class="ttl">' + hl(n.title, q) + '</div>' +
+      '<div class="sub">' + esc(n.subtitle) + '</div></div>';
+  }
+  if (n.type === 'person') {
+    const fc = (n.person && n.person.factors) ? n.person.factors.length : 0;
+    const sub = hl(n.subtitle, q) + (fc ? '<span class="fc"> · факторов: ' + fc + '</span>' : '');
+    return '<div class="card t-person' + (n.hit ? ' hit' : '') + '" data-id="' + n.id + '" data-act="open" style="' + style + '">' +
+      '<div class="ttl">' + hl(n.title, q) + '</div>' +
+      '<div class="sub">' + sub + '</div></div>';
+  }
+  if (n.type === 'factor') {
+    return '<div class="card t-factor" data-id="' + n.id + '" data-act="factor" style="' + style + '">' +
+      '<div class="ttl">' + hl(n.title, q) + '</div></div>';
+  }
+  return '';
+}
+
+function applyZoom() {
+  els.canvas.style.transform = 'scale(' + zoom + ')';
+  els.zoomwrap.style.width = (canvasSize.w * zoom) + 'px';
+  els.zoomwrap.style.height = (canvasSize.h * zoom) + 'px';
+  els.zoomPc.textContent = Math.round(zoom * 100) + '%';
+}
+
+function render() {
+  const q = els.q.value || '';
+  const qq = q.toLowerCase().trim();
+  const tree = buildTree(q);
+
+  tree.subtitle = 'Роли: ' + tree.children.length + ' · Компаний: ' + countCompanies(tree) + ' · Клиентов: ' + countPeople(tree);
+  (function walk(n) {
+    if (n.type === 'role') n.subtitle = 'Компаний: ' + countCompanies(n) + ' · Клиентов: ' + countPeople(n);
+    if (n.type === 'company') n.subtitle = 'Клиентов: ' + countPeople(n);
+    (n.children || []).forEach(walk);
+  })(tree);
+
+  els.stats.textContent = countPeople(tree) + ' клиент(ов) · ' + countCompanies(tree) + ' компани(й)';
+
+  if (!qq) pruneCollapsed(tree);
+
+  measure(tree);
+  assign(tree, PAD, 0);
+  const all = flatten(tree, []);
+  nodeIndex = new Map();
+  all.forEach(n => nodeIndex.set(n.id, n));
+
+  let maxX = 0, maxY = 0;
+  all.forEach(n => { maxX = Math.max(maxX, n.x + n.w / 2); maxY = Math.max(maxY, n.top + n.h); });
+  const W = Math.max(maxX + PAD, 380);
+  const H = Math.max(maxY + PAD, 280);
+  canvasSize = { w: W, h: H };
+
+  let paths = '';
+  all.forEach(n => {
+    (n.children || []).forEach(ch => {
+      const x1 = n.x, y1 = n.top + n.h, x2 = ch.x, y2 = ch.top;
+      const my = y1 + (y2 - y1) / 2;
+      paths += '<path marker-end="url(#arw)" d="M' + x1 + ',' + y1 + ' L' + x1 + ',' + my + ' L' + x2 + ',' + my + ' L' + x2 + ',' + y2 + '"></path>';
     });
   });
-  for (const [comp, roles] of Object.entries(grp)) {
-    let html = `<div class="node"><div class="head" onclick="this.nextElementSibling.classList.toggle('open')"><b>▶ 🏢 ${comp}</b><span style="color:#94a3b8;font-size:13px">Категорий: ${Object.keys(roles).length}</span></div><div class="kids ${q?'open':''}">`;
-    for (const [role, ppl] of Object.entries(roles)) {
-      html += `<div class="node"><div class="head" onclick="this.nextElementSibling.classList.toggle('open')"><b>▶ 🏷️ ${role}</b><span style="color:#94a3b8;font-size:13px">Людей: ${ppl.length}</span></div><div class="kids ${q?'open':''}">`;
-      ppl.forEach(p => {
-        const fs = (p.factors || []).map(i => `<div class="item"><b>${i.n ? i.n + '. ' : ''}${i.name}</b>${i.text}</div>`).join('');
-        html += `<div class="node"><div class="head" onclick="this.nextElementSibling.classList.toggle('open')"><b>▶ 👤 ${p.fio} (${p.position})</b><span style="color:#94a3b8;font-size:13px">Открыть досье</span></div><div class="kids ${q?'open':''}"><div class="card">${fs}</div></div></div>`;
-      });
-      html += `</div></div>`;
-    }
-    html += `</div></div>`;
-    r.innerHTML += html;
+  els.edges.setAttribute('width', W);
+  els.edges.setAttribute('height', H);
+  els.edges.innerHTML = EDGE_DEFS + paths;
+
+  let html = '';
+  all.forEach(n => { html += cardHtml(n, qq); });
+  els.nodes.innerHTML = html;
+
+  els.canvas.style.width = W + 'px';
+  els.canvas.style.height = H + 'px';
+  applyZoom();
+
+  const isEmpty = tree.children.length === 0;
+  els.empty.hidden = !isEmpty;
+  els.empty.textContent = isEmpty ? (qq ? 'Ничего не найдено по запросу «' + q.trim() + '»' : 'Нет данных') : '';
+}
+/* ===== Панель подробностей клиента ===== */
+function openDrawer(p, personNode, factor) {
+  p = p || {};
+  const factors = p.factors || [];
+  let body = '';
+  if (factors.length) {
+    factors.forEach(f => {
+      const flash = factor && factor === f;
+      body += '<div class="fitem' + (flash ? ' flash' : '') + '">' +
+        '<div class="fn">' + esc((f.n ? f.n + '. ' : '') + (f.name || '')) + '</div>' +
+        '<div class="ft">' + esc(f.text || '') + '</div></div>';
+    });
+  } else {
+    body = '<div class="ft" style="color:#94a3b8">Факторы не заданы.</div>';
+  }
+  els.drawer.innerHTML =
+    '<button class="dclose" id="dclose" title="Закрыть">✕</button>' +
+    '<div class="dhead">' +
+      '<div class="nm">👤 ' + esc(p.fio || 'Без имени') + '</div>' +
+      (p.position ? '<div class="ps">' + esc(p.position) + '</div>' : '') +
+      '<div class="chips">' +
+        (personNode && personNode.role ? '<span class="chip role">' + esc(personNode.role) + '</span>' : '') +
+        (personNode && personNode.company ? '<span class="chip company">🏢 ' + esc(personNode.company) + '</span>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="dbody">' + body + '</div>';
+  els.drawer.classList.add('show');
+  els.overlay.hidden = false;
+  const closeBtn = document.getElementById('dclose');
+  if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+  if (factor) {
+    const t = els.drawer.querySelector('.fitem.flash');
+    if (t) t.scrollIntoView({ block: 'center' });
   }
 }
-function allOpen(v) { document.querySelectorAll('.kids').forEach(e => e.classList.toggle('open', v)); }
+function closeDrawer() { els.drawer.classList.remove('show'); els.overlay.hidden = true; }
+
+/* ===== JSON-модалка ===== */
 function openM() { document.getElementById('jin').value = JSON.stringify(data, null, 2); document.getElementById('m').classList.add('show'); }
-function save() { try { data = JSON.parse(document.getElementById('jin').value); localStorage.setItem('treeDataV3', JSON.stringify(data)); render(); document.getElementById('m').classList.remove('show'); } catch(e) { alert('Ошибка JSON: ' + e.message); } }
+function closeM() { document.getElementById('m').classList.remove('show'); }
+function save() {
+  try {
+    const parsed = JSON.parse(document.getElementById('jin').value);
+    if (!Array.isArray(parsed)) throw new Error('Ожидается массив объектов верхнего уровня');
+    data = parsed;
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    collapsed.clear(); showFactors = false; syncFbtn();
+    closeM(); render();
+  } catch (e) { alert('Ошибка JSON: ' + e.message); }
+}
+function downloadJSON() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Клиенты_дерево.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+function resetDefault() {
+  if (!confirm('Вернуть исходные данные из примера? Текущие изменения в браузере будут потеряны.')) return;
+  data = JSON.parse(JSON.stringify(def));
+  localStorage.removeItem(LS_KEY);
+  collapsed.clear(); showFactors = false; syncFbtn();
+  closeM(); render();
+}
+function syncFbtn() {
+  els.fbtn.classList.toggle('active', showFactors);
+  els.fbtn.textContent = showFactors ? '🧩 Факторы: вкл' : '🧩 Факторы: выкл';
+}
+function setZoom(z) { zoom = Math.min(2, Math.max(0.3, +z.toFixed(2))); applyZoom(); }
+
+/* ===== События ===== */
+els.nodes.addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const act = card.dataset.act, id = card.dataset.id;
+  if (act === 'toggle') {
+    if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
+    render();
+    return;
+  }
+  const node = nodeIndex.get(id);
+  if (!node) return;
+  if (act === 'open') openDrawer(node.person, node, null);
+  else if (act === 'factor') openDrawer(node.person, node, node.factor);
+});
+
+els.q.addEventListener('input', render);
+document.getElementById('expandAll').addEventListener('click', () => { collapsed.clear(); render(); });
+document.getElementById('collapseAll').addEventListener('click', () => {
+  collapsed.clear();
+  const arr = Array.isArray(data) ? data : [];
+  for (let ri = 0; ri < arr.length; ri++) collapsed.add('r' + ri);
+  render();
+});
+els.fbtn.addEventListener('click', () => { showFactors = !showFactors; syncFbtn(); render(); });
+document.getElementById('zout').addEventListener('click', () => setZoom(zoom - 0.1));
+document.getElementById('zin').addEventListener('click', () => setZoom(zoom + 0.1));
+els.zoomPc.addEventListener('click', () => setZoom(1));
+document.getElementById('jsonBtn').addEventListener('click', openM);
+document.getElementById('cancelBtn').addEventListener('click', closeM);
+document.getElementById('saveBtn').addEventListener('click', save);
+document.getElementById('dlBtn').addEventListener('click', downloadJSON);
+document.getElementById('resetBtn').addEventListener('click', resetDefault);
+els.overlay.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeM(); } });
+els.viewport.addEventListener('wheel', e => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  setZoom(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
+}, { passive: false });
+
+syncFbtn();
 render();
 </script>
 </body>
